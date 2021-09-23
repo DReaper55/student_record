@@ -1,7 +1,5 @@
-import 'dart:math';
-
 import 'package:data_table_2/paginated_data_table_2.dart';
-import 'package:fluent_ui/fluent_ui.dart';
+import 'package:fluent_ui/fluent_ui.dart' as ft;
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:student_record/database/mongo_db.dart';
@@ -16,9 +14,8 @@ class Homepage extends StatefulWidget {
 }
 
 class _HomepageState extends State<Homepage> {
-  DataTableSource _data = MyData();
-
-  List<Map<String, Object>> stuffList = [];
+  List<Student> studentsList = [];
+  List<Student> originalStudentsList = [];
 
   final TextEditingController _recordSearchCtrl = TextEditingController();
   final PaginatorController _paginatorCtrl = PaginatorController();
@@ -28,24 +25,16 @@ class _HomepageState extends State<Homepage> {
     super.initState();
 
     loaData();
+  }
 
-    _data = MyData.data(stuffList);
-
-    // print(MyData().data[3]['id']);
+  DataTableSource _showData() {
+    return MyData.data(studentsList);
   }
 
   loaData() async {
-    stuffList = List.generate(
-        200,
-        (index) => {
-              "id": index,
-              "title": "Item: $index",
-              "price": Random().nextInt(10000),
-            });
-
     MongoDB mongo = MongoDB();
 
-    await mongo.insert(Student.build(
+    /*await mongo.insert(Student.build(
         "12/12/1212",
         "Quantum Mechanics",
         "C:\\Users\\DANIEL UWADI\\Pictures\\face14.jpg",
@@ -53,34 +42,42 @@ class _HomepageState extends State<Homepage> {
         "Matilda Hesmond",
         "Female",
         "False",
-        "16/1122334"));
+        "16/1122334"));*/
 
-    // await mongo.updateStudentRecord(
-    //     "16/1122334",
-    //     Student.build(
-    //         "12/12/1212",
-    //         "Quantum Physics",
-    //         "C:\\Users\\DANIEL UWADI\\Pictures\\face14.jpg",
-    //         "Physical Sciences",
-    //         "Matilda Simeon",
-    //         "Female",
-    //         "False",
-    //         "16/1122334"));
+    /*await mongo.updateStudentRecord(
+        "16/1122334",
+        Student.build(
+            "12/12/1212",
+            "Quantum Physics",
+            "C:\\Users\\DANIEL UWADI\\Pictures\\face14.jpg",
+            "Physical Sciences",
+            "Matilda Simeon",
+            "Female",
+            "False",
+            "16/1122334"));*/
 
     // await mongo.deleteStudentRecord("16/1122334");
 
-    Student student = await mongo.getStudent("17/095244112");
-    print(student.fullName);
+    // Student student = await mongo.getStudent("17/095244112");
+    // print(student.fullName);
 
-    // List<Student> documents = await mongo.getAllStudents();
-    // for (var element in documents) {
-    //   print(element.fullName);
-    // }
+    List<Student> studentsList = await mongo.getAllStudents();
+    for (var student in studentsList) {
+      this.studentsList.add(student);
+      originalStudentsList.add(student);
+      print(student.fullName);
+    }
+
+    mongo.cleanUpDatabase();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldPage(
+    if (mounted == true) {
+      MongoDB().getAllStudents().then((value) => originalStudentsList = value);
+    }
+
+    return ft.ScaffoldPage(
       content: LayoutBuilder(
         builder: (context, constraint) => Container(
           alignment: Alignment.center,
@@ -91,28 +88,6 @@ class _HomepageState extends State<Homepage> {
                   "Student ID Card Allocation System",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 40.0),
                 ),
-                // Container(
-                //   margin: const EdgeInsets.all(10),
-                //   child: Row(
-                //     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                //     children: [
-                //       ElevatedButton(
-                //           onPressed: () => print("New"),
-                //           child: const Text("New"),
-                //           style: const ButtonStyle(
-                //             alignment: Alignment.center,
-                //             // minimumSize: MaterialStateProperty.all(Size(20, 20)),
-                //             // backgroundColor:
-                //             //     MaterialStateProperty.all<Color>(Colors.blue),
-                //           )),
-                //       ElevatedButton(
-                //         onPressed: () => print("Search"),
-                //         child: const Text("Search"),
-                //         style: const ButtonStyle(alignment: Alignment.center),
-                //       ),
-                //     ],
-                //   ),
-                // ),
 
                 /*******************************************************
                      * The Student records loaded from the database
@@ -120,19 +95,22 @@ class _HomepageState extends State<Homepage> {
                 SizedBox(
                   height: constraint.maxHeight - 50.0,
                   child: PaginatedDataTable2(
-                    source: _data,
+                    source: _showData(),
                     controller: _paginatorCtrl,
                     header: const Text(
                       "Student list",
                       style: TextStyle(fontSize: 20),
                     ),
                     columns: const [
-                      DataColumn(label: Text("ID")),
-                      DataColumn(label: Text("Title")),
-                      DataColumn(label: Text("Price")),
+                      DataColumn(label: Text("Full Name")),
+                      DataColumn(label: Text("Matric Number")),
+                      DataColumn(label: Text("Department")),
+                      DataColumn(label: Text("Faculty")),
+                      DataColumn(label: Text("Gender")),
+                      DataColumn(label: Text("Date Of Birth")),
+                      DataColumn(label: Text("isGottenIDCard")),
                       DataColumn(label: Text("Actions")),
                     ],
-                    columnSpacing: 100,
                     horizontalMargin: 10,
                     headingRowHeight: 50.0,
                     empty: const Center(
@@ -167,10 +145,10 @@ class _HomepageState extends State<Homepage> {
                            * Refresh and New button
                            ***************************/
                       ElevatedButton(
-                        onPressed: () {
+                        onPressed: () async {
                           _recordSearchCtrl.clear();
                           setState(() {
-                            _data = MyData.data(stuffList);
+                            studentsList = originalStudentsList;
                           });
                         },
                         child: const Text("Refresh"),
@@ -192,13 +170,11 @@ class _HomepageState extends State<Homepage> {
   }
 
   // Filter the list to return and show search query
-  filterList(String value) {
-    for (var element in stuffList) {
-      if (element['id'].toString() == value) {
-        print(element['id']);
-
+  filterList(String matricNumber) {
+    for (Student student in studentsList) {
+      if (student.matricNumber == matricNumber) {
         setState(() {
-          _data = MyData.data([element]);
+          studentsList = [student];
         });
       }
     }
@@ -206,30 +182,41 @@ class _HomepageState extends State<Homepage> {
 }
 
 class MyData extends DataTableSource {
-  List<Map<String, Object>> data = [];
+  List<Student> data = [];
 
   MyData();
 
-  MyData.data(List<Map<String, Object>> data) {
-    this.data = data;
-  }
+  MyData.data(this.data);
 
   @override
   DataRow? getRow(int index) {
     return DataRow(cells: [
-      DataCell(Text(data[index]['id'].toString())),
-      DataCell(Text(data[index]['title'].toString())),
-      DataCell(Text(data[index]['price'].toString())),
+      DataCell(Text(data[index].fullName.toString())),
+      DataCell(Text(data[index].matricNumber.toString())),
+      DataCell(Text(data[index].department.toString())),
+      DataCell(Text(data[index].fullName.toString())),
+      DataCell(Text(data[index].gender.toString())),
+      DataCell(Text(data[index].dateOfBirth.toString())),
+      DataCell(Text(data[index].isGottenIDCard.toString())),
       DataCell(Row(
         children: [
-          Button(
-            child: const Text("Delete"),
-            onPressed: () => print("Delete item with id ${data[index]['id']}"),
-          ),
-          Button(
-            child: const Text("New"),
+          ft.Button(
+            style: ft.ButtonStyle(
+                backgroundColor:
+                    ft.ButtonState.all(Colors.lightGreen.shade100)),
+            child: const Text("Edit"),
             onPressed: () => print("Create new item at $index"),
-          )
+          ),
+          ft.Button(
+            style: ft.ButtonStyle(
+                backgroundColor: ft.ButtonState.all(Colors.red.shade400)),
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.white),
+            ),
+            onPressed: () =>
+                print("Delete item with id ${data[index].fullName}"),
+          ),
         ],
       )),
     ]);

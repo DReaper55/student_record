@@ -25,27 +25,27 @@ class Student {
 
   Student.fromMap(Map<String, dynamic> list) {
     Utils utils = Utils();
-    this.matricNumber = list[utils.MATRIC];
-    this.isGottenIDCard = list[utils.ISGOTTENIDCARD];
-    this.gender = list[utils.GENDER];
-    this.fullName = list[utils.FULLNAME];
-    this.faculty = list[utils.FACULTY];
-    this.displayPic = list[utils.DISPLAYPICTURE];
-    this.dateOfBirth = list[utils.DATEOFBIRTH];
-    this.department = list[utils.DEPARTMENT];
+    matricNumber = list[utils.MATRIC];
+    isGottenIDCard = list[utils.ISGOTTENIDCARD];
+    gender = list[utils.GENDER];
+    fullName = list[utils.FULLNAME];
+    faculty = list[utils.FACULTY];
+    displayPic = list[utils.DISPLAYPICTURE];
+    dateOfBirth = list[utils.DATEOFBIRTH];
+    department = list[utils.DEPARTMENT];
   }
 
   Map<String, dynamic> toMap() {
     Utils utils = Utils();
     return {
-      utils.DEPARTMENT: this.department,
-      utils.DATEOFBIRTH: this.dateOfBirth,
-      utils.DISPLAYPICTURE: this.displayPic,
-      utils.FACULTY: this.faculty,
-      utils.FULLNAME: this.fullName,
-      utils.GENDER: this.gender,
-      utils.ISGOTTENIDCARD: this.isGottenIDCard,
-      utils.MATRIC: this.matricNumber
+      utils.DEPARTMENT: department,
+      utils.DATEOFBIRTH: dateOfBirth,
+      utils.DISPLAYPICTURE: displayPic,
+      utils.FACULTY: faculty,
+      utils.FULLNAME: fullName,
+      utils.GENDER: gender,
+      utils.ISGOTTENIDCARD: isGottenIDCard,
+      utils.MATRIC: matricNumber
     };
   }
 }
