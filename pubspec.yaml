@@ -34,8 +34,9 @@ dependencies:
   flutter_acrylic: ^0.0.3
   mongo_dart: ^0.7.2
   data_table_2: ^2.1.1
-  #  system_theme: ^1.0.1
+  system_theme: ^2.1.0
   file_picker: ^4.0.3
+  printing: ^5.9.3
 
 
   # The following adds the Cupertino Icons font to your application.

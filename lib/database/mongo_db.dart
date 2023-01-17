@@ -10,11 +10,8 @@ class MongoDB {
   _initialize() async {
     await _db.open();
 
-    print(_db.state);
-
     if (_db.isConnected) {
       _studentsCollection = _db.collection("students");
-      print("Connected");
     }
   }
 
@@ -44,7 +41,6 @@ class MongoDB {
     List<Student> students = [];
 
     if (_db.state == State.OPEN) {
-      // print("Open");
       documents = await _studentsCollection!.find().toList();
 
       for (var student in documents) {

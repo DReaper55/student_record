@@ -3,18 +3,26 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:student_record/database/mongo_db.dart';
 import 'package:student_record/student/student.dart';
 
 class CreateUpdateRecordPageBuild extends FluentPageRoute {
-  CreateUpdateRecordPageBuild()
-      : super(builder: (BuildContext context) => const CreateUpdateRecord());
+  String? matric;
+
+  CreateUpdateRecordPageBuild({this.matric})
+      : super(
+            builder: (BuildContext context) => CreateUpdateRecord(
+                  matric: matric,
+                ));
 
   @override
   Widget buildPage(BuildContext context, Animation<double> animation,
       Animation<double> secondaryAnimation) {
     return HorizontalSlidePageTransition(
-      child: const CreateUpdateRecord(),
+      child: CreateUpdateRecord(
+        matric: matric,
+      ),
       animation: animation,
       fromLeft: true,
     );
@@ -22,7 +30,9 @@ class CreateUpdateRecordPageBuild extends FluentPageRoute {
 }
 
 class CreateUpdateRecord extends StatefulWidget {
-  const CreateUpdateRecord({Key? key}) : super(key: key);
+  final String? matric;
+
+  const CreateUpdateRecord({Key? key, this.matric}) : super(key: key);
 
   @override
   _CreateUpdateRecordState createState() => _CreateUpdateRecordState();
@@ -38,10 +48,36 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
   int currentGenderIndex = -1;
 
   PlatformFile? userImageFile;
+  String? userImagePath;
 
   DateTime date = DateTime.now();
 
   Student student = Student();
+  Student studentToBeUpdated = Student();
+
+  @override
+  void initState() {
+    super.initState();
+
+    getStudentRecord(widget.matric.toString());
+  }
+
+  getStudentRecord(String matric) async {
+    studentToBeUpdated = await MongoDB().getStudent(matric);
+
+    _fullname.text = studentToBeUpdated.fullName.toString();
+    _matric.text = studentToBeUpdated.matricNumber.toString();
+    _department.text = studentToBeUpdated.department.toString();
+    _faculty.text = studentToBeUpdated.faculty.toString();
+
+    setState(() {
+      userImagePath = studentToBeUpdated.displayPic.toString();
+
+      currentGenderIndex = studentToBeUpdated.gender == "Male" ? 0 : 1;
+
+      date = DateTime.parse(studentToBeUpdated.dateOfBirth.toString());
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +94,7 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
               children: [
                 GestureDetector(
                   onTap: _loadUserImage,
-                  child: userImageFile == null
+                  child: userImagePath == null
                       ? Container(
                           alignment: Alignment.topRight,
                           width: 200,
@@ -73,7 +109,8 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
                           height: 200,
                           decoration: BoxDecoration(
                             image: DecorationImage(
-                                image: FileImage(File(userImageFile!.name)),
+                                image:
+                                    FileImage(File(userImagePath.toString())),
                                 fit: BoxFit.cover),
                             border: Border.all(width: 2.0, color: Colors.grey),
                             borderRadius: BorderRadius.circular(5.0),
@@ -87,6 +124,9 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
                   child: TextBox(
                     controller: _fullname,
                     placeholder: "Enter full name",
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^[A-Za-z ]+')),
+                    ],
                     style: const TextStyle(fontSize: 18),
                     minHeight: 40,
                     maxLines: 1,
@@ -106,6 +146,10 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
                   child: TextBox(
                     controller: _matric,
                     placeholder: "Enter Matric number",
+                    inputFormatters: [
+                      FilteringTextInputFormatter.deny(RegExp(r'^[A-Za-z ]+')),
+                      FilteringTextInputFormatter.allow(RegExp(r'^[0-9/0-9]+'))
+                    ],
                     style: const TextStyle(fontSize: 18),
                     minHeight: 40,
                     maxLines: 1,
@@ -125,6 +169,9 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
                   child: TextBox(
                     controller: _department,
                     placeholder: "Name of Department",
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^[A-Za-z ]+')),
+                    ],
                     style: const TextStyle(fontSize: 18),
                     minHeight: 40,
                     maxLines: 1,
@@ -144,6 +191,9 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
                   child: TextBox(
                     controller: _faculty,
                     placeholder: "Name of Faculty",
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^[A-Za-z ]+')),
+                    ],
                     style: const TextStyle(fontSize: 18),
                     minHeight: 40,
                     maxLines: 1,
@@ -217,10 +267,10 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
         .pickFiles(allowedExtensions: ['jpg', 'jpeg', 'png']);
 
     setState(() {
-      userImageFile = result!.files.first;
+      userImagePath = result!.files.first.path;
     });
 
-    print(userImageFile!.path);
+    print([userImageFile!.path, userImageFile!.name, userImageFile!.size]);
   }
 
   saveUserDetailsToDB() async {
@@ -232,8 +282,7 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
     student.fullName = _fullname.value.text;
     student.matricNumber = _matric.value.text;
     student.faculty = _faculty.value.text;
-    student.displayPic = userImageFile!.path;
-    student.isGottenIDCard = "False";
+    student.displayPic = userImagePath;
 
     if (student.dateOfBirth != null &&
         student.gender != null &&
@@ -241,9 +290,18 @@ class _CreateUpdateRecordState extends State<CreateUpdateRecord> {
         student.fullName != null &&
         student.matricNumber != null &&
         student.faculty != null &&
-        student.isGottenIDCard != null &&
         student.dateOfBirth != null) {
-      await mongo.insert(student);
+      if (widget.matric == null) {
+        student.isGottenIDCard = "False";
+        await mongo.insert(student);
+      } else {
+        if (studentToBeUpdated.isGottenIDCard == "True") {
+          student.isGottenIDCard = "True";
+        } else {
+          student.isGottenIDCard = "False";
+        }
+        await mongo.updateStudentRecord(widget.matric.toString(), student);
+      }
     }
 
     await mongo.cleanUpDatabase();
